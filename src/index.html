@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#1a1814">
+<title>Bill Splitter</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,400&family=JetBrains+Mono:wght@400;500;600&family=Inter+Tight:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<!-- ========== SCREEN: HOME ========== -->
+<div class="screen active" id="screen-home">
+  <header class="header">
+    <div class="eyebrow">UHBVN · TENANT BILL SPLITTER</div>
+    <h1><span>Split your</span><br>electricity bill.</h1>
+  </header>
+
+  <div class="quick-stats" id="quickStats" style="display:none">
+    <div class="stat">
+      <span class="stat-label">Last bill</span>
+      <span class="stat-val" id="statLastBill">—</span>
+    </div>
+    <div class="stat">
+      <span class="stat-label">Last reading</span>
+      <span class="stat-val" id="statLastReading">—</span>
+    </div>
+  </div>
+
+  <div class="action-grid">
+    <button class="action-card primary" data-screen="bill">
+      <span class="action-icon">⚡</span>
+      <span class="action-title">New bill split</span>
+      <span class="action-sub">Calculate this month</span>
+    </button>
+    <button class="action-card" data-screen="history">
+      <span class="action-icon">📚</span>
+      <span class="action-title">History</span>
+      <span class="action-sub" id="histCount">0 entries</span>
+    </button>
+    <button class="action-card" data-screen="settings">
+      <span class="action-icon">⚙</span>
+      <span class="action-title">Settings</span>
+      <span class="action-sub">Numbers &amp; names</span>
+    </button>
+  </div>
+
+  <div class="footer">— RUNS ON YOUR PHONE · NOTHING UPLOADED —</div>
+</div>
+
+<!-- ========== SCREEN: NEW BILL FLOW ========== -->
+<div class="screen" id="screen-bill">
+  <header class="screen-header">
+    <button class="back-btn" data-screen="home">← Back</button>
+    <h2>New Bill Split</h2>
+  </header>
+
+  <!-- STEP 1: Get bill data -->
+  <section class="step">
+    <span class="step-num">01</span>
+    <h3>Bill amount &amp; units</h3>
+    <p>Choose how to enter the bill data.</p>
+
+    <div class="tabs" id="billTabs">
+      <button class="tab active" data-tab="pdf">📄 PDF</button>
+      <button class="tab" data-tab="photo">📸 Photo</button>
+      <button class="tab" data-tab="manual">✍ Manual</button>
+    </div>
+
+    <div class="tab-pane active" data-pane="pdf">
+      <label for="pdfInput" class="drop-zone" id="dropZonePdf">
+        <span class="drop-icon">📄</span>
+        <span class="drop-label" id="dropLabelPdf">Tap to choose PDF</span>
+        <span class="drop-hint" id="dropHintPdf">— UHBVN bill from email —</span>
+      </label>
+      <input type="file" id="pdfInput" accept="application/pdf">
+    </div>
+
+    <div class="tab-pane" data-pane="photo">
+      <button class="capture-btn" id="captureBillBtn">
+        <span class="capture-icon">📸</span>
+        <span>Take photo of bill</span>
+      </button>
+      <div class="captured-preview" id="billPreview" style="display:none">
+        <img id="billPreviewImg" alt="Bill preview">
+        <button class="retake-btn" id="retakeBillBtn">↻ Retake</button>
+      </div>
+    </div>
+
+    <div class="tab-pane" data-pane="manual">
+      <div class="row">
+        <div class="field">
+          <label for="manualAmount">Total Amount (₹)</label>
+          <input type="number" id="manualAmount" inputmode="decimal" placeholder="0.00" step="0.01">
+        </div>
+        <div class="field">
+          <label for="manualUnits">Total Units (kWh)</label>
+          <input type="number" id="manualUnits" inputmode="decimal" placeholder="0.00" step="0.01">
+        </div>
+      </div>
+      <div class="field">
+        <label for="manualMonth">Bill Month</label>
+        <input type="text" id="manualMonth" placeholder="e.g. SEP/2024">
+      </div>
+    </div>
+
+    <div class="status" id="billStatus"></div>
+
+    <!-- Confirmation card after extraction -->
+    <div class="confirm-card" id="confirmBill" style="display:none">
+      <div class="confirm-header">Verify extracted values</div>
+      <div class="row">
+        <div class="field">
+          <label>Total Amount (₹)</label>
+          <input type="number" id="confirmAmount" inputmode="decimal" step="0.01">
+        </div>
+        <div class="field">
+          <label>Total Units</label>
+          <input type="number" id="confirmUnits" inputmode="decimal" step="0.01">
+        </div>
+      </div>
+      <div class="field">
+        <label>Bill Month</label>
+        <input type="text" id="confirmMonth" placeholder="e.g. SEP/2024">
+      </div>
+    </div>
+  </section>
+
+  <!-- STEP 2: Submeter readings -->
+  <section class="step">
+    <span class="step-num">02</span>
+    <h3>Submeter readings</h3>
+    <p id="readingHint">Enter or scan tenant's submeter readings.</p>
+
+    <div class="field">
+      <label for="prev">Previous reading</label>
+      <input type="number" id="prev" inputmode="decimal" placeholder="0.00" step="0.01">
+      <span class="field-note" id="prevNote"></span>
+    </div>
+
+    <div class="field">
+      <label for="curr">Current reading</label>
+      <div class="input-with-action">
+        <input type="number" id="curr" inputmode="decimal" placeholder="0.00" step="0.01">
+        <button class="icon-btn" id="captureMeterBtn" title="Scan meter">📸</button>
+      </div>
+      <span class="field-note" id="currNote"></span>
+    </div>
+  </section>
+
+  <!-- STEP 3: Calculate -->
+  <section class="step">
+    <span class="step-num">03</span>
+    <h3>Calculate &amp; share</h3>
+    <button class="btn primary" id="calcBtn" disabled>Calculate tenant's share</button>
+  </section>
+
+  <!-- Results -->
+  <section class="results" id="results">
+    <div class="result-card">
+      <h3 class="result-heading">Bill Breakdown</h3>
+      <div class="line-item">
+        <span class="label">Bill month</span>
+        <span class="val" id="r-month">—</span>
+      </div>
+      <div class="line-item">
+        <span class="label">Total bill amount</span>
+        <span class="val" id="r-total">—</span>
+      </div>
+      <div class="line-item">
+        <span class="label">Total units (kWh)</span>
+        <span class="val" id="r-units">—</span>
+      </div>
+      <div class="line-item">
+        <span class="label">Rate per unit</span>
+        <span class="val" id="r-rate">—</span>
+      </div>
+      <div class="line-item">
+        <span class="label">Tenant units (kWh)</span>
+        <span class="val" id="r-tunits">—</span>
+      </div>
+      <div class="total-row">
+        <span class="label">Tenant's share</span>
+        <span class="val"><span class="currency">₹</span><span id="r-amount">—</span></span>
+      </div>
+    </div>
+
+    <div class="result-card">
+      <h3 class="result-heading">Share via WhatsApp</h3>
+      <button class="wa-link" id="wa-self">
+        <span>Send to my WhatsApp</span>
+        <span class="arrow">→</span>
+      </button>
+      <button class="wa-link" id="wa-tenant">
+        <span>Send to tenant's WhatsApp</span>
+        <span class="arrow">→</span>
+      </button>
+      <button class="btn secondary" id="copyMsgBtn">📋 Copy message</button>
+    </div>
+
+    <div class="result-card">
+      <button class="btn secondary" id="saveBtn">💾 Save to history</button>
+      <span class="save-status" id="saveStatus"></span>
+    </div>
+  </section>
+</div>
+
+<!-- ========== SCREEN: HISTORY ========== -->
+<div class="screen" id="screen-history">
+  <header class="screen-header">
+    <button class="back-btn" data-screen="home">← Back</button>
+    <h2>History</h2>
+    <button class="header-action" id="exportCsvBtn">⤓ CSV</button>
+  </header>
+
+  <div class="history-empty" id="historyEmpty">
+    <span class="empty-icon">📭</span>
+    <p>No saved bills yet.<br>Calculate a bill and tap "Save to history."</p>
+  </div>
+
+  <div class="history-list" id="historyList"></div>
+</div>
+
+<!-- ========== SCREEN: HISTORY DETAIL ========== -->
+<div class="screen" id="screen-history-detail">
+  <header class="screen-header">
+    <button class="back-btn" data-screen="history">← History</button>
+    <h2 id="detailTitle">Bill Details</h2>
+    <button class="header-action danger" id="deleteEntryBtn">🗑</button>
+  </header>
+  <div class="detail-content" id="detailContent"></div>
+</div>
+
+<!-- ========== SCREEN: SETTINGS ========== -->
+<div class="screen" id="screen-settings">
+  <header class="screen-header">
+    <button class="back-btn" data-screen="home">← Back</button>
+    <h2>Settings</h2>
+  </header>
+
+  <section class="step">
+    <h3>Your details</h3>
+    <div class="field">
+      <label for="myName">Your name</label>
+      <input type="text" id="myName" placeholder="Raman">
+    </div>
+    <div class="field">
+      <label for="myNum">Your WhatsApp number</label>
+      <input type="tel" id="myNum" inputmode="numeric" placeholder="91 9876543210">
+      <span class="field-note">Country code first, no +, no spaces</span>
+    </div>
+  </section>
+
+  <section class="step">
+    <h3>Tenant's details</h3>
+    <div class="field">
+      <label for="tenantName">Tenant's name</label>
+      <input type="text" id="tenantName" placeholder="Tenant">
+    </div>
+    <div class="field">
+      <label for="tenantNum">Tenant's WhatsApp number</label>
+      <input type="tel" id="tenantNum" inputmode="numeric" placeholder="91 9876543210">
+    </div>
+  </section>
+
+  <section class="step">
+    <h3>Display</h3>
+    <div class="field">
+      <label for="meterLabel">Submeter label (optional)</label>
+      <input type="text" id="meterLabel" placeholder="e.g. Ground floor, Shop 2">
+    </div>
+  </section>
+
+  <button class="btn primary" id="saveSettingsBtn">Save settings</button>
+
+  <section class="step danger-section">
+    <h3>Danger zone</h3>
+    <button class="btn outline-danger" id="clearHistoryBtn">Clear all history</button>
+  </section>
+</div>
+
+<!-- Loading overlay -->
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="loading-card">
+    <div class="spinner-large"></div>
+    <p id="loadingText">Working…</p>
+  </div>
+</div>
+
+<!-- Toast notification -->
+<div class="toast" id="toast"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script>
+  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+</script>
+<script src="parser.js"></script>
+<script src="db.js"></script>
+<script src="ocr.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
