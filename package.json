@@ -1,0 +1,25 @@
+{
+  "name": "bill-splitter",
+  "version": "1.0.0",
+  "description": "UHBVN Tenant Electricity Bill Splitter — Android app",
+  "main": "src/index.html",
+  "private": true,
+  "scripts": {
+    "build:web": "echo 'No build step needed - static files in src/'",
+    "cap:add:android": "npx cap add android",
+    "cap:sync": "npx cap sync android",
+    "cap:open": "npx cap open android"
+  },
+  "dependencies": {
+    "@capacitor/android": "^6.1.2",
+    "@capacitor/app": "^6.0.1",
+    "@capacitor/browser": "^6.0.2",
+    "@capacitor/camera": "^6.0.2",
+    "@capacitor/core": "^6.1.2",
+    "@capacitor/preferences": "^6.0.2",
+    "@capacitor-mlkit/text-recognition": "^6.0.0"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^6.1.2"
+  }
+}
