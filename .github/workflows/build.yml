@@ -1,0 +1,102 @@
+name: Build Android APK
+
+on:
+  push:
+    branches: [main, master]
+  workflow_dispatch: {}   # allows manual triggering from GitHub UI
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Setup Java (required for Android)
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install npm dependencies
+        run: npm install
+
+      - name: Add Android platform
+        run: |
+          if [ ! -d "android" ]; then
+            npx cap add android
+          fi
+
+      - name: Configure WhatsApp queries permission
+        run: |
+          # Ensure AndroidManifest.xml allows querying WhatsApp intent
+          MANIFEST="android/app/src/main/AndroidManifest.xml"
+          if [ -f "$MANIFEST" ] && ! grep -q "queries" "$MANIFEST"; then
+            python3 - <<'EOF'
+import re
+path = "android/app/src/main/AndroidManifest.xml"
+with open(path) as f:
+    content = f.read()
+queries_block = '''
+    <queries>
+        <package android:name="com.whatsapp" />
+        <package android:name="com.whatsapp.w4b" />
+        <intent>
+            <action android:name="android.intent.action.SENDTO" />
+            <data android:scheme="smsto" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="https" />
+        </intent>
+    </queries>
+'''
+if "<queries>" not in content:
+    content = re.sub(r'(</application>)', queries_block + r'\1', content, count=1)
+    with open(path, 'w') as f:
+        f.write(content)
+    print("Added <queries> block")
+else:
+    print("<queries> already present")
+EOF
+          fi
+
+      - name: Sync Capacitor
+        run: npx cap sync android
+
+      - name: Build debug APK
+        working-directory: android
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleDebug --no-daemon
+
+      - name: Rename APK
+        run: |
+          mkdir -p output
+          cp android/app/build/outputs/apk/debug/app-debug.apk output/bill-splitter-debug.apk
+          ls -lh output/
+
+      - name: Upload APK as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: bill-splitter-apk
+          path: output/bill-splitter-debug.apk
+          retention-days: 30
+
+      - name: Create GitHub Release (optional, on tag push)
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: output/bill-splitter-debug.apk
+          generate_release_notes: true
